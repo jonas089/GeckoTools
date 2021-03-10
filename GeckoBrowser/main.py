@@ -138,6 +138,11 @@ def XgapFix(Range, acceptance, data):
                 print('Warning: ' + str(E))
                 print('[This is due to too many requests, this Warning is resolved automatically.]')
                 time.sleep(10)
+    os.remove('OLD_' + str(days) + '.dat')
+    open('OLD_' + str(days) + '.dat', 'x')
+    with open('OLD_' + str(days) + '.dat', 'wb') as database:
+            pickle.dump(old_coins, database)
+            
     return coins
 
 def unkown_vol_out(data):
