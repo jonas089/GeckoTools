@@ -120,16 +120,37 @@ def FilterByAge(yt, ids):
             pickle.dump(old_coins, database)
     return coins
 
+def XgapFix(Range, acceptance, data):
+    coins = FilterByAge(Range, data)
+    for i in range(0, len(data)):
+        while True:
+            try:
+                r = requests.get(tickers + i + '/market_chart?vs_currency=usd&days=' + str(Range) + '&interval=daily')
+                res = json.loads(r.text)
+                if len(res['prices']) < acceptance:
+                    coins.append(len(coins))
+                    coins[len(coins) - 1] = i
+                else:
+                    old_coins.append(len(old_coins))
+                    old_coins[len(old_coins) - 1] = i
+                    break
+            except Exception as E:
+                print('Warning: ' + str(E))
+                print('[This is due to too many requests, this Warning is resolved automatically.]')
+                time.sleep(10)
+    return coins
+
 def unkown_vol_out(data):
     coins = []
     Etimeout = 'Expecting value: line 1 column 1 (char 0)'
+    Enovolume = 'Expecting value: line 1 column 1 (char 0)'
     uke = 0
     st = time.time()
-    for i in range(0, len(data) - 1):
+    for i in range(0, len(data)):
         et = cut(str(time.time() - st))
         print('[Removing coins with an unknown 24 hour volume]')
         print('Runtime(s): ' + et)
-        print('[' + str(i + 1) + '/' + str(len(data) - 1) + ']')
+        print('[' + str(i + 1) + '/' + str(len(data)) + ']')
         c = data[i]
         uvo = 'https://api.coingecko.com/api/v3/simple/price?ids=' + c + '&vs_currencies=usd&include_24hr_vol=true'
         try:
@@ -137,11 +158,16 @@ def unkown_vol_out(data):
             res = json.loads(r.text)
             try:
                 d = float(res[c]['usd_24h_vol'])
-                if res[c]['usd_24h_vol'] != '?':
+                if d > 1:
+                    print(str(d))
+
                     coins.append(len(coins))
                     coins[len(coins) - 1] = c
+                    print('[valid coin]')
+
             except Exception as NOFLOAT:
                 uke += 1
+                print('[invalid coin]')
                 pass
             clear()
         except Exception as E:
@@ -152,11 +178,15 @@ def unkown_vol_out(data):
                     res = json.loads(r.text)
                     try:
                         d = float(res[c]['usd_24h_vol'])
-                        if res[c]['usd_24h_vol'] != '?':
+                        if d > 1:
+                            print('[valid coin]')
+
                             coins.append(len(coins))
                             coins[len(coins) - 1] = c
                     except Exception as NOFLOAT:
                         uke += 1
+                        print('[invalid coin]')
+
                         pass
                     clear()
                     break
@@ -164,8 +194,16 @@ def unkown_vol_out(data):
                     if str(E2) == Etimeout:
                         print('[Warning: Known timeout Error, will be fixed automatically]')
                         time.sleep(10)
+                    elif Enovolume in str(E2):
+                        uke += 1
+                        print('[invalid coin]')
+
+                        clear()
+                        break
                     else:
                         uke += 1
+                        print('[invalid coin]')
+
                         time.sleep(10)
                         clear()
                         break
@@ -175,16 +213,20 @@ def unkown_vol_out(data):
 
 def ExchangeFilterV1(coin, exchange):
     # exchange = 'binance'
-    r = requests.get(tickers + coin + '?localization=false&tickers=true&market_data=true')
-    res = json.loads(r.text)
-    if exchange in str(res['tickers']):
-        return True
-    else:
+    try:
+        r = requests.get(tickers + coin + '?localization=false&tickers=true&market_data=true')
+        res = json.loads(r.text)
+        if exchange in str(res['tickers']):
+            return True
+        else:
+            return False
+    except Exception as E:
         return False
 
 def ExchangeFilterV2(coins, exchange):
     result = []
     for i in range(0, len(coins) - 1):
+        print('[' + str(i) + '/' + str(len(coins) - 1) + ']')
         c = coins[i]
         if ExchangeFilterV1(c, exchange) == True:
             result.append(len(result))
@@ -198,8 +240,9 @@ def ReturnFileData(days, date):
     data = []
     try:
         with open('db_d' + str(days) + '_' + date + '.dat', 'rb') as database:
-            data = pickle.loads(database)
+            data = pickle.load(database)
     except Exception as empty:
+        print(str(empty))
         pass
     return data
 
@@ -229,4 +272,11 @@ def FilterByVolumeRange(bottom, top, coins):
             result[len(result) - 1] = i
     return result
 
-ResetAndCheckAll(90, '09.03.2021')
+def OnExchangeMinVol(data, exchange, minvol, maxvol):
+    return(FilterByVolumeRange(minvol, maxvol, ExchangeFilterV2(data, exchange)))
+
+
+#ResetAndCheckAll(30, '10.03.2021')
+coins = ReturnFileData(90, '09.03.2021')
+print(OnExchangeMinVol(XgapFix(180, 90 , coins), 'binance', 1*10^6, 1*10^11))
+# note to myself: feature "hypedate", showing all coins, which social media attention did a y-x over the course of z - time
