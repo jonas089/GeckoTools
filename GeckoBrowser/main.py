@@ -71,16 +71,11 @@ def FilterByAge(yt, ids):
 
     ids = idov
     Etimeout = 'Expecting value: line 1 column 1 (char 0)'
-    st = time.time()
     coins = []
     print('[Searching for coins that were listed on Coingecko less than ' + str(yt) + ' days ago]')
     with tqdm(total=len(ids)) as pbar:
         for e in range(0, len(ids)):
             pbar.update(1)
-            et = cut(str(time.time() - st))
-            if e > 0:
-                toi = float(et) / e
-                tl = toi * (len(ids) - 1 - e)
             i = ids[e]
             try:
                 r = requests.get(tickers + i + '/market_chart?vs_currency=usd&days=' + str(yt) + '&interval=daily')
@@ -104,15 +99,19 @@ def FilterByAge(yt, ids):
                                 old_coins.append(len(old_coins))
                                 old_coins[len(old_coins) - 1] = i
                             break
-                        except Exception as E:
-                            if Etimeout == str(E):
+                        except Exception as E2:
+                            if Etimeout == str(E2):
                                 time.sleep(10)
                             else:
+                                print(str(E2))
+                                time.sleep(1)
                                 break
                 else:
-                    break
-
-    os.remove('OLD_' + str(days) + '.dat')
+                    pass
+    try:
+        os.remove('OLD_' + str(days) + '.dat')
+    except Exception as Nofile:
+        pass
     open('OLD_' + str(days) + '.dat', 'x')
     with open('OLD_' + str(days) + '.dat', 'wb') as database:
             pickle.dump(old_coins, database)
@@ -143,7 +142,10 @@ def XgapFix(Range, acceptance, data):
                         time.sleep(10)
                     else:
                         break
-    os.remove('OLD_' + str(Range) + '.dat')
+    try:
+        os.remove('OLD_' + str(Range) + '.dat')
+    except Exception as Nofile:
+        pass
     open('OLD_' + str(Range) + '.dat', 'x')
     with open('OLD_' + str(Range) + '.dat', 'wb') as database:
             pickle.dump(old_coins, database)
@@ -160,8 +162,6 @@ def unkown_vol_out(data):
     with tqdm(total=len(data)) as pbar:
         for i in range(0, len(data)):
             pbar.update(1)
-            et = cut(str(time.time() - st))
-            #print('[' + str(i + 1) + '/' + str(len(data)) + ']')
             c = data[i]
             uvo = 'https://api.coingecko.com/api/v3/simple/price?ids=' + c + '&vs_currencies=usd&include_24hr_vol=true'
             try:
@@ -289,7 +289,15 @@ def OnExchangeMinVol(data, exchange, minvol, maxvol):
 
 clear()
 
+def UpdateBinance(date):
+    ResetAndCheckAll(90, date)
+    coins = ReturnFileData(90, date)
+    return OnExchangeMinVol(XgapFix(180, 90 , coins), 'binance', 1000000, 1000000000000)
+def Gecko(date):
+    ResetAndCheckAll(30, date)
+    coins = ReturnFileData(30, date)
+    return XgapFix(180, 30, coins)
+
+print(Gecko(date = '11.03.2021'))
 #ResetAndCheckAll(30, '10.03.2021')
-coins = ReturnFileData(90, '09.03.2021')
-print(OnExchangeMinVol(XgapFix(180, 90 , coins), 'binance', 1000000, 1000000000000))
 # note to myself: feature "hypedate", showing all coins, which social media attention did a y-x over the course of z - time
