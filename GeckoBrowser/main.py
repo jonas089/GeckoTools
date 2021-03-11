@@ -10,10 +10,10 @@ list = 'https://api.coingecko.com/api/v3/coins/list'
 tickers = 'https://api.coingecko.com/api/v3/coins/'
 
 def clear():
-    #if name == 'nt':
-    #    _ = system('cls')
-    #else:
-    #    _ = system('clear')
+    if name == 'nt':
+        _ = system('cls')
+    else:
+        _ = system('clear')
     pass
 def cutx(string, x):
     res = ''
@@ -105,10 +105,13 @@ def FilterByAge(yt, ids):
                                 old_coins[len(old_coins) - 1] = i
                             break
                         except Exception as E:
-                            time.sleep(10)
+                            if Etimeout == str(E):
+                                time.sleep(10)
+                            else:
+                                break
                 else:
-                    time.sleep(10)
-        clear()
+                    break
+
     os.remove('OLD_' + str(days) + '.dat')
     open('OLD_' + str(days) + '.dat', 'x')
     with open('OLD_' + str(days) + '.dat', 'wb') as database:
@@ -116,9 +119,12 @@ def FilterByAge(yt, ids):
     return coins
 
 def XgapFix(Range, acceptance, data):
-    coins = FilterByAge(Range, data)
+    #coins = FilterByAge(Range, data)
+    Etimeout = 'Expecting value: line 1 column 1 (char 0)'
+    coins = []
+    old_coins = []
     print('[Applying XgapFix to list of ' + str(len(data)) + ' coins]')
-    with tqdm(total=len(coins)) as pbar:
+    with tqdm(total=len(data)) as pbar:
         for i in range(0, len(data)):
             pbar.update(1)
             while True:
@@ -131,14 +137,17 @@ def XgapFix(Range, acceptance, data):
                     else:
                         old_coins.append(len(old_coins))
                         old_coins[len(old_coins) - 1] = data[i]
-                        break
+                    break
                 except Exception as E:
-                    time.sleep(10)
-    os.remove('OLD_' + str(days) + '.dat')
-    open('OLD_' + str(days) + '.dat', 'x')
-    with open('OLD_' + str(days) + '.dat', 'wb') as database:
+                    if str(E) == Etimeout:
+                        time.sleep(10)
+                    else:
+                        break
+    os.remove('OLD_' + str(Range) + '.dat')
+    open('OLD_' + str(Range) + '.dat', 'x')
+    with open('OLD_' + str(Range) + '.dat', 'wb') as database:
             pickle.dump(old_coins, database)
-
+    print(coins)
     return coins
 
 def unkown_vol_out(data):
@@ -167,7 +176,7 @@ def unkown_vol_out(data):
                 except Exception as NOFLOAT:
                     uke += 1
                     pass
-                clear()
+
             except Exception as E:
                 while True:
                     try:
@@ -182,19 +191,19 @@ def unkown_vol_out(data):
                         except Exception as NOFLOAT:
                             uke += 1
                             pass
-                        clear()
+
                         break
                     except Exception as E2:
                         if str(E2) == Etimeout:
                             time.sleep(10)
                         elif Enovolume in str(E2):
                             uke += 1
-                            clear()
+
                             break
                         else:
                             uke += 1
                             time.sleep(10)
-                            clear()
+
                             break
     print('Unkown Errors [ignored]: ' + str(uke))
     time.sleep(10)
@@ -252,25 +261,35 @@ def ResetAndCheckAll(days, date):
 
 def FilterByVolumeRange(bottom, top, coins):
     result = []
+    Etimeout = 'Expecting value: line 1 column 1 (char 0)'
     print('[Applying Volume-Filter to list of ' + str(len(coins)) + ' coins]')
     with tqdm(total=len(coins)) as pbar:
         for c in range(0, len(coins)):
             pbar.update(1)
             i = coins[c]
-            url = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=' + i + '&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h'
-            r = requests.get(url)
-            res = json.loads(r.text)
-            volume = float(res['total_volume'])
-            if volume >= bottom and volume <= top:
-                result.append(len(result))
-                result[len(result) - 1] = i
+            while True:
+                url = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=' + i + '&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h'
+                r = requests.get(url)
+                try:
+                    res = json.loads(r.text)[0]
+                    volume = float(res['total_volume'])
+                    if volume >= bottom and volume <= top:
+                        result.append(len(result))
+                        result[len(result) - 1] = i
+                    break
+                except Exception as E:
+                    if str(E) == Etimeout:
+                        time.sleep(10)
+                    else:
+                        break
     return result
 
 def OnExchangeMinVol(data, exchange, minvol, maxvol):
     return(FilterByVolumeRange(minvol, maxvol, ExchangeFilterV2(data, exchange)))
 
+clear()
 
 #ResetAndCheckAll(30, '10.03.2021')
 coins = ReturnFileData(90, '09.03.2021')
-print(OnExchangeMinVol(XgapFix(180, 90 , coins), 'binance', 1*10^6, 1*10^11))
+print(OnExchangeMinVol(XgapFix(180, 90 , coins), 'binance', 1000000, 1000000000000))
 # note to myself: feature "hypedate", showing all coins, which social media attention did a y-x over the course of z - time
