@@ -259,6 +259,52 @@ def ResetAndCheckAll(days, date):
     with open('db_d' + str(days) + '_' + date + '.dat', 'wb') as database:
         pickle.dump(data, database)
 
+def FilterInactive(coins, reddit_post_min, reddit_comment_min, alexa_rank_min, pull_requests_merged_min):
+    result = []
+    Etimeout = 'Expecting value: line 1 column 1 (char 0)'
+    print('[Applying Activity-Filter to list of ' + str(len(coins)) + ' coins]')
+    with tqdm(total=len(coins)) as pbar:
+        for e in range(0, len(coins)):
+            pbar.update(1)
+            while True:
+                try:
+                    c = coins[e]
+                    url = 'https://api.coingecko.com/api/v3/coins/' + c + '/history?date=12-03-2021&localization=false'
+                    r = requests.get(url)
+                    res = json.loads(r.text)
+                    reddit_average_posts_48h = 0
+                    reddit_average_comments_48h = 0
+                    alexa_rank = 0
+                    pull_requests_merged = 0
+                    try:
+                        reddit_average_posts_48h = float(res['community_data']['reddit_average_posts_48h'])
+                    except Exception as E:
+                        pass
+                    try:
+                        reddit_average_comments_48h = float(res['community_data']['reddit_average_comments_48h'])
+                    except Exception as E:
+                        pass
+                    try:
+                        alexa_rank = float(res['public_interest_stats']['alexa_rank'])
+                    except Exception as E:
+                        pass
+                    try:
+                        pull_requests_merged = float(res['developer_data']['pull_requests_merged'])
+                    except Exception as E:
+                        pass
+
+                    if (reddit_average_posts_48h >= reddit_post_minand and reddit_average_comments_48h >= reddit_comment_min and alexa_rank >= alexa_rank_minand and pull_requests_merged >= pull_requests_merged_min):
+                        result.append(len(result))
+                        result[len(result) - 1] = c
+                    else:
+                        pass
+                    break
+                except Exception as E:
+                    if str(E) == Etimeout:
+                        time.sleep(10)
+                    else:
+                        break
+    return result
 def FilterByVolumeRange(bottom, top, coins):
     result = []
     Etimeout = 'Expecting value: line 1 column 1 (char 0)'
@@ -298,6 +344,9 @@ def Gecko(date):
     coins = ReturnFileData(30, date)
     return XgapFix(180, 30, coins)
 
-print(Gecko(date = '11.03.2021'))
+unfiltered = ReturnFileData(30, '11.03.2021')
+print(FilterInactive(unfiltered, 0, 50, 50, 1))
+#print(ReturnFileData(30, '11.03.2021'))
+#coins, reddit_post_min, reddit_comment_min, alexa_rank_min, pull_requests_merged_min
 #ResetAndCheckAll(30, '10.03.2021')
 # note to myself: feature "hypedate", showing all coins, which social media attention did a y-x over the course of z - time
