@@ -293,7 +293,7 @@ def FilterInactive(coins, reddit_post_min, reddit_comment_min, alexa_rank_min, p
                     except Exception as E:
                         pass
 
-                    if (reddit_average_posts_48h >= reddit_post_minand and reddit_average_comments_48h >= reddit_comment_min and alexa_rank >= alexa_rank_minand and pull_requests_merged >= pull_requests_merged_min):
+                    if (reddit_average_posts_48h >= reddit_post_min and reddit_average_comments_48h >= reddit_comment_min and alexa_rank >= alexa_rank_min and pull_requests_merged >= pull_requests_merged_min):
                         result.append(len(result))
                         result[len(result) - 1] = c
                     else:
@@ -305,6 +305,44 @@ def FilterInactive(coins, reddit_post_min, reddit_comment_min, alexa_rank_min, p
                     else:
                         break
     return result
+
+def RedditCommentChange(coins, d1, m1, y1, d2, m2, y2, up_by):
+    Etimeout = 'Expecting value: line 1 column 1 (char 0)'
+    result = []
+    print('[Applying RedditCommentChange-Filter to list of ' + str(len(coins)) + ' coins]')
+    with tqdm(total=len(coins)) as pbar:
+        for e in range(0, len(coins)):
+            pbar.update(1)
+            while True:
+                try:
+                    c = coins[e]
+                    url1 = 'https://api.coingecko.com/api/v3/coins/' + c + '/history?date=' + str(d1) + '-' + str(m1) + '-' + str(y1) + '&localization=false'
+                    url2 = 'https://api.coingecko.com/api/v3/coins/' + c + '/history?date=' + str(d2) + '-' + str(m2) + '-' + str(y2) + '&localization=false'
+                    r1 = requests.get(url1)
+                    res1 = json.loads(r1.text)
+                    r2 = requests.get(url2)
+                    res2 = json.loads(r2.text)
+                    reddit_average_comments_48h_t1 = 0
+                    reddit_average_comments_48h_t2 = 0
+                    factor = 0
+                    try:
+                        reddit_average_comments_48h_t1 = float(res1['community_data']['reddit_average_comments_48h'])
+                        reddit_average_comments_48h_t2 = float(res2['community_data']['reddit_average_comments_48h'])
+                        factor = reddit_average_comments_48h_t2 / reddit_average_comments_48h_t1
+                        if factor != 0 and factor >= up_by:
+                            result.append(len(result))
+                            result[len(result) - 1] = c
+                            break
+                    except Exception as E:
+                        pass
+                except Exception as NE:
+                    if str(NE) == Etimeout:
+                        time.sleep(10)
+                    else:
+                        break
+    return result
+
+
 def FilterByVolumeRange(bottom, top, coins):
     result = []
     Etimeout = 'Expecting value: line 1 column 1 (char 0)'
@@ -344,9 +382,15 @@ def Gecko(date):
     coins = ReturnFileData(30, date)
     return XgapFix(180, 30, coins)
 
-unfiltered = ReturnFileData(30, '11.03.2021')
-print(FilterInactive(unfiltered, 0, 50, 50, 1))
+unfiltered = ReturnFileData(90, '09.03.2021')
+filtered = FilterInactive(unfiltered, 0, 0, 1, 0)
+print(filtered)
+print('-'*15)
+print('Coins with a Social media attention delta of 50%+ (past 7 days)')
+print(RedditCommentChange(filtered, '05', '03', '2021', '12', '03', '2021', 1.5))
+
 #print(ReturnFileData(30, '11.03.2021'))
-#coins, reddit_post_min, reddit_comment_min, alexa_rank_min, pull_requests_merged_min
+#RedditCommentChange(coins, d1, m1, y1, d2, m2, y2, up_by):
+#FilterInactive(coins, reddit_post_min, reddit_comment_min, alexa_rank_min, pull_requests_merged_min)
 #ResetAndCheckAll(30, '10.03.2021')
 # note to myself: feature "hypedate", showing all coins, which social media attention did a y-x over the course of z - time
