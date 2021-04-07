@@ -461,9 +461,24 @@ data_15_03_2021 = ['1inch', '2give', '2x2', '3xt', '42-coin', '4new', '5g-cash',
 #FilterInactive(coins, reddit_post_min, reddit_comment_min, alexa_rank_min, pull_requests_merged_min)
 #ResetAndCheckAll(30, '10.03.2021')
 # note to myself: feature "hypedate", showing all coins, which social media attention did a y-x over the course of z - time
-data = ExchangeFilterV2(XgapFix(360, 180, ResetAndCheckAll(180, '16.03.2021')), 'binance')
+#print(ResetAndCheckAll(90, '22.03.2021'))
+
+data1 = XgapFix(90, 30, ResetAndCheckAll(30, '06.04.2021'))
+print(data1)
+print('-' * 100)
+print('[DATA1]')
+data2 = ExchangeFilterV2(data1, 'binance')
+print(data2)
+print('-' * 100)
+print('[DATA2]')
 print(data)
-print(RedditCommentChange(data, '17', '01', '2021', '17', '03', '2021', 1.5))
+print(RedditCommentChange(data1, '05', '03', '2021', '05', '04', '2021', 1.5))
+print('-' * 100)
+print('[DATA1 Filtered]')
+print(RedditCommentChange(data2, '05', '03', '2021', '05', '04', '2021', 1.5))
+print('-' * 100)
+print('[DATA2 Filtered]')
+
 #dates = ['01-03-2021']
 #print(CoinAlytics('cartesi', dates))
 
